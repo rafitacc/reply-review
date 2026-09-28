@@ -65,8 +65,7 @@ export function UserSwitcher({ users, current }: Props) {
                   <button
                     type="button"
                     disabled={pending}
-                    aria-current={active || undefined}
-                    className={`flex items-center gap-3 py-2 ${active ? "bg-base-200" : ""}`}
+                    className="flex items-center gap-3 py-2"
                     onClick={() => (active ? detailsRef.current?.removeAttribute("open") : run(() => switchUser(user.email)))}
                   >
                     <Avatar name={user.name} />
@@ -74,6 +73,12 @@ export function UserSwitcher({ users, current }: Props) {
                       <span className={active ? "font-medium" : undefined}>{user.name}</span>
                       <span className="text-xs text-base-content/60">{user.label}</span>
                     </span>
+                    {active && (
+                      <span className="ml-auto text-primary">
+                        <Check />
+                        <span className="sr-only">(current)</span>
+                      </span>
+                    )}
                   </button>
                 </li>
               );
@@ -105,6 +110,14 @@ function Avatar({ name }: { name: string }) {
     >
       {name.charAt(0).toUpperCase()}
     </span>
+  );
+}
+
+function Check() {
+  return (
+    <svg aria-hidden viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="1.75">
+      <path d="M3.5 8.5l3 3 6-7" />
+    </svg>
   );
 }
 
