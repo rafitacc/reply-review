@@ -50,7 +50,31 @@ select
   (select r.id from public.replies r
      where r.specialist_id = :'dani' order by r.sent_at limit 1)        as dani_reply,
   (select rv.id from public.reviews rv
-     where rv.reviewer_id = :'marta' order by rv.created_at limit 1)    as marta_review
+     where rv.reviewer_id = :'marta' order by rv.created_at limit 1)    as marta_review,
+  (select rv.id from public.reviews rv
+     where rv.reviewer_id = :'nuria' order by rv.created_at limit 1)    as nuria_review,
+  (select count(*) from public.review_issues ri
+     join public.reviews rv on rv.id = ri.review_id
+     join public.replies r on r.id = rv.reply_id
+     where r.specialist_id = :'tomas')                                  as tomas_own_tags,
+  (select count(*) from public.review_issues ri
+     join public.reviews rv on rv.id = ri.review_id
+     join public.replies r on r.id = rv.reply_id
+     where r.specialist_id <> :'tomas')                                 as others_tags,
+  -- Ids of reviews on other specialists' replies, so the check can ask for
+  -- their tags directly instead of through joins RLS would already filter.
+  (select array_agg(rv.id) from public.reviews rv
+     join public.replies r on r.id = rv.reply_id
+     where r.specialist_id <> :'tomas')                                 as others_review_ids
+\gset
+
+-- An issue type not yet on Marta's review, so tagging it is a clean insert.
+select it.id as free_issue_type
+from public.issue_types it
+where not exists (select 1 from public.review_issues ri
+                  where ri.review_id = :'marta_review' and ri.issue_type_id = it.id)
+order by it.id
+limit 1
 \gset
 
 create temp table rls_check (
@@ -103,6 +127,11 @@ insert into rls_check (who, check_, expected, actual) values
      (select count(*) from public.reviews)::text),
   ('Tomás', 'profiles visible (Voltra team)',       :'voltra_team',
      (select count(*) from public.profiles)::text),
+  ('Tomás', 'review tags visible (only on his replies)', :'tomas_own_tags',
+     (select count(*) from public.review_issues)::text),
+  ('Tomás', 'tags on other specialists'' reviews (' || :'others_tags' || ' exist)', '0',
+     (select count(*) from public.review_issues
+        where review_id = any (:'others_review_ids'::uuid[]))::text),
   ('Tomás', 'insert a reply',                       'denied (42501)',
      pg_temp.try_write(format(
        $q$insert into public.replies (brand_id, specialist_id, customer_message, reply_body, sent_at)
@@ -140,6 +169,13 @@ insert into rls_check (who, check_, expected, actual) values
      pg_temp.try_write(format(
        $q$insert into public.reviews (reply_id, reviewer_id, score) values (%L, %L, 4)$q$,
        :'lumen_reply', :'marta'))),
+  -- Same reply and reviewer as the allowed insert below, so the only reason
+  -- for the denial is the backdated created_at.
+  ('Marta', 'insert review with a custom created_at', 'denied (42501)',
+     pg_temp.try_write(format(
+       $q$insert into public.reviews (reply_id, reviewer_id, score, created_at)
+          values (%L, %L, 4, now() - interval '90 days')$q$,
+       :'voltra_unreviewed_reply', :'marta'))),
   ('Marta', 'insert review as herself on Voltra',   'allowed',
      pg_temp.try_write(format(
        $q$insert into public.reviews (reply_id, reviewer_id, score) values (%L, %L, 4)$q$,
@@ -152,7 +188,18 @@ insert into rls_check (who, check_, expected, actual) values
        $q$update public.reviews set reviewer_id = %L where id = %L$q$, :'nuria', :'marta_review'))),
   ('Marta', 'delete her own review',                'no rows affected',
      pg_temp.try_write(format(
-       $q$delete from public.reviews where id = %L$q$, :'marta_review')));
+       $q$delete from public.reviews where id = %L$q$, :'marta_review'))),
+  ('Marta', 'attach a tag to her own review',       'allowed',
+     pg_temp.try_write(format(
+       $q$insert into public.review_issues (review_id, issue_type_id) values (%L, %s)$q$,
+       :'marta_review', :'free_issue_type'))),
+  ('Marta', 'attach a tag to a review owned by Nuria', 'denied (42501)',
+     pg_temp.try_write(format(
+       $q$insert into public.review_issues (review_id, issue_type_id) values (%L, %s)$q$,
+       :'nuria_review', :'free_issue_type'))),
+  ('Marta', 'remove tags from a review owned by Nuria', 'no rows affected',
+     pg_temp.try_write(format(
+       $q$delete from public.review_issues where review_id = %L$q$, :'nuria_review')));
 
 -- ---------------------------------------------------------------------------
 -- Dani: specialist, tries to review his own reply
