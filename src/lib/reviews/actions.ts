@@ -26,6 +26,11 @@ export type SaveReviewInput = {
 
 export type SaveReviewResult = { ok: true; savedAt: string } | { ok: false; error: string };
 
+// Database errors name tables, columns and policies, so they are logged on the
+// server and the browser only ever gets this.
+const SAVE_FAILED =
+  "The review could not be saved. Your score, tags and comment are still here; try again in a moment.";
+
 type Valid = Omit<SaveReviewInput, "comment"> & { comment: string | null };
 
 // Everything from the browser is untrusted, including its shape. Note there is
@@ -116,7 +121,8 @@ export async function saveReview(input: unknown): Promise<SaveReviewResult> {
         }
         reviewId = existing.id;
       } else {
-        return { ok: false, error: `The review was not saved: ${inserted.error}` };
+        console.error("saveReview: insert failed", { replyId: valid.replyId, code: inserted.code, error: inserted.error });
+        return { ok: false, error: SAVE_FAILED };
       }
     }
 
@@ -132,8 +138,8 @@ export async function saveReview(input: unknown): Promise<SaveReviewResult> {
         : `/review${filtersToQuery({ ...valid.filters, status: "to_review" })}`;
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error.";
-    return { ok: false, error: `${message} Your score, tags and comment are still here; try saving again.` };
+    console.error("saveReview: failed", { replyId: valid.replyId, error });
+    return { ok: false, error: SAVE_FAILED };
   }
 
   revalidatePath("/review", "layout");
