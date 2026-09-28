@@ -15,14 +15,9 @@ export function dayLabel(iso: string, now: Date = new Date()): string {
   if (dayKey(date) === dayKey(now)) return "Today";
   if (dayKey(date) === dayKey(yesterday)) return "Yesterday";
 
-  return date
-    .toLocaleDateString(LOCALE, {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      year: date.getFullYear() === now.getFullYear() ? undefined : "numeric",
-    })
-    .replace(",", "");
+  const part = (options: Intl.DateTimeFormatOptions) => date.toLocaleDateString("en-US", options);
+  const label = `${part({ weekday: "short" })} ${date.getDate()} ${part({ month: "short" })}`;
+  return date.getFullYear() === now.getFullYear() ? label : `${label} ${date.getFullYear()}`;
 }
 
 export function groupByDay<T>(items: readonly T[], getIso: (item: T) => string): { label: string; items: T[] }[] {
