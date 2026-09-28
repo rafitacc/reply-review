@@ -9,7 +9,11 @@
 --   npm run db:rls-check
 --
 -- Everything runs inside one transaction that is rolled back, so the writes it
--- attempts never persist.
+-- attempts never persist. The rows the write checks act on (a reply nobody has
+-- reviewed, a review by Marta, a review by Nuria) are created as fixtures at
+-- the start of that transaction, so the result depends only on the seeded
+-- users and brands, not on whatever was reviewed in the app since the last
+-- `npm run db:reset`.
 
 \set ON_ERROR_STOP on
 \pset footer off
@@ -28,6 +32,51 @@ begin;
 \set claims_nuria '{"sub": "00000000-0000-4000-a000-000000000002", "role": "authenticated"}'
 \set claims_dani  '{"sub": "00000000-0000-4000-a000-000000000003", "role": "authenticated"}'
 \set claims_tomas '{"sub": "00000000-0000-4000-a000-000000000005", "role": "authenticated"}'
+\set lucia   '00000000-0000-4000-a000-000000000004'
+\set lumen   'b0000000-0000-4000-a000-000000000003'
+
+-- Fixture ids, only ever alive inside this transaction
+\set fx_voltra_reply 'f0000000-0000-4000-a000-000000000001'
+\set fx_marta_reply  'f0000000-0000-4000-a000-000000000002'
+\set fx_lumen_reply  'f0000000-0000-4000-a000-000000000003'
+\set fx_marta_review 'f0000000-0000-4000-a000-000000000011'
+\set fx_nuria_review 'f0000000-0000-4000-a000-000000000012'
+
+-- The fixtures below need the seeded people and brands. Without them the
+-- inserts would fail on a foreign key with a message that points nowhere
+-- useful, so check first and say what to do.
+do $$
+begin
+  if (select count(*) from public.brand_members
+      where (brand_id, user_id, role) in (
+        ('b0000000-0000-4000-a000-000000000001'::uuid, '00000000-0000-4000-a000-000000000001'::uuid, 'lead'),
+        ('b0000000-0000-4000-a000-000000000001'::uuid, '00000000-0000-4000-a000-000000000003'::uuid, 'specialist'),
+        ('b0000000-0000-4000-a000-000000000003'::uuid, '00000000-0000-4000-a000-000000000002'::uuid, 'lead'),
+        ('b0000000-0000-4000-a000-000000000003'::uuid, '00000000-0000-4000-a000-000000000004'::uuid, 'specialist'))) <> 4
+  then
+    raise exception 'rls_check: the seeded users and brands are missing or changed. Run `npm run db:reset` first.';
+  end if;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Fixtures, inserted as the table owner (bypasses RLS and column grants):
+--   fx_voltra_reply  Voltra reply by Dani that nobody has reviewed
+--   fx_marta_reply   Voltra reply by Dani, reviewed by Marta (no tags)
+--   fx_lumen_reply   Lumen reply by Lucía, reviewed by Nuria (one tag, not
+--                    the one Marta tries to attach, so a denial can only be RLS)
+-- ---------------------------------------------------------------------------
+insert into public.replies (id, brand_id, specialist_id, subject, customer_message, reply_body, sent_at, source) values
+  (:'fx_voltra_reply', :'voltra', :'dani',  'rls_check fixture', 'Fixture message.', 'Fixture reply.', now(), 'rls_check'),
+  (:'fx_marta_reply',  :'voltra', :'dani',  'rls_check fixture', 'Fixture message.', 'Fixture reply.', now(), 'rls_check'),
+  (:'fx_lumen_reply',  :'lumen',  :'lucia', 'rls_check fixture', 'Fixture message.', 'Fixture reply.', now(), 'rls_check');
+
+insert into public.reviews (id, reply_id, reviewer_id, score) values
+  (:'fx_marta_review', :'fx_marta_reply', :'marta', 4),
+  (:'fx_nuria_review', :'fx_lumen_reply', :'nuria', 4);
+
+insert into public.review_issues (review_id, issue_type_id)
+select :'fx_nuria_review', max(id) from public.issue_types;
 
 -- ---------------------------------------------------------------------------
 -- Ground truth, read as the table owner (bypasses RLS). Expected values come
@@ -40,19 +89,12 @@ select
   (select count(*) from public.replies r join public.brands b on b.id = r.brand_id
      where b.slug = 'lumen')                                            as lumen_replies,
   (select count(*) from public.brand_members where brand_id = :'voltra') as voltra_team,
-  (select r.id from public.replies r
-     where r.brand_id = :'voltra'
-       and not exists (select 1 from public.reviews rv
-                       where rv.reply_id = r.id and rv.reviewer_id = :'marta')
-     order by r.sent_at limit 1)                                        as voltra_unreviewed_reply,
-  (select r.id from public.replies r join public.brands b on b.id = r.brand_id
-     where b.slug = 'lumen' order by r.sent_at limit 1)                 as lumen_reply,
-  (select r.id from public.replies r
-     where r.specialist_id = :'dani' order by r.sent_at limit 1)        as dani_reply,
-  (select rv.id from public.reviews rv
-     where rv.reviewer_id = :'marta' order by rv.created_at limit 1)    as marta_review,
-  (select rv.id from public.reviews rv
-     where rv.reviewer_id = :'nuria' order by rv.created_at limit 1)    as nuria_review,
+  -- Write checks act on the fixtures, never on rows the app may have changed.
+  :'fx_voltra_reply'::uuid                                            as voltra_unreviewed_reply,
+  :'fx_lumen_reply'::uuid                                             as lumen_reply,
+  :'fx_voltra_reply'::uuid                                            as dani_reply,
+  :'fx_marta_review'::uuid                                            as marta_review,
+  :'fx_nuria_review'::uuid                                            as nuria_review,
   (select count(*) from public.review_issues ri
      join public.reviews rv on rv.id = ri.review_id
      join public.replies r on r.id = rv.reply_id
