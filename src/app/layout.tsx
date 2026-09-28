@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { TopBar } from "@/components/shell/top-bar";
-import { getCurrentUser } from "@/lib/data/session";
+import { getCurrentUser, getLedBrands, getSpecialistBrands } from "@/lib/data/session";
 import { DEMO_USERS, isDemoMode } from "@/lib/demo-users";
 import "./globals.css";
 
@@ -23,6 +23,9 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const user = await getCurrentUser();
+  const [ledBrands, specialistBrands] = user
+    ? await Promise.all([getLedBrands(user.id), getSpecialistBrands(user.id)])
+    : [[], []];
 
   return (
     <html
@@ -30,7 +33,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <TopBar user={user} demoUsers={isDemoMode() ? DEMO_USERS : null} />
+        <TopBar
+          user={user}
+          demoUsers={isDemoMode() ? DEMO_USERS : null}
+          ledBrands={ledBrands.map((b) => ({ name: b.brandName, slug: b.brandSlug }))}
+          writesReplies={specialistBrands.length > 0}
+        />
         <div className="flex-1">{children}</div>
       </body>
     </html>

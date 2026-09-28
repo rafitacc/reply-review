@@ -20,8 +20,8 @@ export default async function ReviewQueuePage({ searchParams }: PageProps<"/revi
       <Page>
         <EmptyState
           title="You don't lead any brand"
-          body="The review queue is for team leads. Your own replies and the feedback on them will show up on your home page."
-          action={{ href: "/", label: "Go to home" }}
+          body="The review queue is for team leads. Your own replies and the feedback on them are in My feedback."
+          action={{ href: "/feedback", label: "Go to my feedback" }}
         />
       </Page>
     );

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { EmptyState } from "@/components/review/empty-state";
-import { getCurrentUser, getLedBrands } from "@/lib/data/session";
+import { getCurrentUser, getLedBrands, getSpecialistBrands } from "@/lib/data/session";
 
 export default async function Home() {
   const user = await getCurrentUser();
@@ -17,14 +17,16 @@ export default async function Home() {
     );
   }
 
+  // Leads land on their queue even if they also write replies somewhere;
+  // "My feedback" stays one click away in the top bar.
   if ((await getLedBrands(user.id)).length > 0) redirect("/review");
+  if ((await getSpecialistBrands(user.id)).length > 0) redirect("/feedback");
 
-  // Placeholder until the specialist's "My feedback" view (PR 4).
   return (
     <Page>
       <EmptyState
-        title="Your feedback is coming in the next version"
-        body="Soon you will see your own replies here, with the scores and comments your team lead left on them."
+        title="You're not on any brand yet"
+        body="Once a team lead adds you to a brand, as a lead or a specialist, your replies or your review queue show up here."
       />
     </Page>
   );
