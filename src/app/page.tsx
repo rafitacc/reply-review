@@ -1,53 +1,35 @@
-import { getCurrentUser, getMyMemberships, getVisibleCounts } from "@/lib/data/session";
+import { redirect } from "next/navigation";
 
-// Proof page for PR 2: shows that the session is real and that what the
-// current user can read comes from RLS. Replaced by the real views in PR 3.
+import { EmptyState } from "@/components/review/empty-state";
+import { getCurrentUser, getLedBrands } from "@/lib/data/session";
+
 export default async function Home() {
   const user = await getCurrentUser();
 
   if (!user) {
     return (
-      <main>
-        <h1>reply-review</h1>
-        <p>Not signed in. Pick a demo user above to see what they can access.</p>
-      </main>
+      <Page>
+        <EmptyState
+          title="Pick a demo user to start"
+          body="Use the switcher in the top right to act as a team lead or a specialist. Each one sees only what their brand memberships allow."
+        />
+      </Page>
     );
   }
 
-  const [memberships, counts] = await Promise.all([
-    getMyMemberships(user.id),
-    getVisibleCounts(),
-  ]);
+  if ((await getLedBrands(user.id)).length > 0) redirect("/review");
 
+  // Placeholder until the specialist's "My feedback" view (PR 4).
   return (
-    <main>
-      <h1>reply-review</h1>
-
-      <h2>Signed in as</h2>
-      <p>
-        {user.fullName ?? "(no profile)"} · {user.email}
-        <br />
-        <code>{user.id}</code>
-      </p>
-
-      <h2>Brand memberships</h2>
-      {memberships.length === 0 ? (
-        <p>No brand memberships.</p>
-      ) : (
-        <ul>
-          {memberships.map((m) => (
-            <li key={m.brandId}>
-              {m.brandName} · {m.role}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <h2>Visible through RLS</h2>
-      <ul>
-        <li>Replies: {counts.replies}</li>
-        <li>Reviews: {counts.reviews}</li>
-      </ul>
-    </main>
+    <Page>
+      <EmptyState
+        title="Your feedback is coming in the next version"
+        body="Soon you will see your own replies here, with the scores and comments your team lead left on them."
+      />
+    </Page>
   );
+}
+
+function Page({ children }: { children: React.ReactNode }) {
+  return <main className="mx-auto w-full max-w-4xl px-4 py-8">{children}</main>;
 }

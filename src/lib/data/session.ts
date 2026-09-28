@@ -66,16 +66,3 @@ export async function getLedBrands(userId: string): Promise<Membership[]> {
     .filter((m) => m.role === "lead")
     .sort((a, b) => a.brandName.localeCompare(b.brandName));
 }
-
-// Everything RLS lets the current user read, counted without filters.
-export async function getVisibleCounts(): Promise<{ replies: number; reviews: number }> {
-  const supabase = await createClient();
-  const [replies, reviews] = await Promise.all([
-    supabase.from("replies").select("*", { count: "exact", head: true }),
-    supabase.from("reviews").select("*", { count: "exact", head: true }),
-  ]);
-  if (replies.error) throw new Error(`Could not count replies: ${replies.error.message}`);
-  if (reviews.error) throw new Error(`Could not count reviews: ${reviews.error.message}`);
-
-  return { replies: replies.count ?? 0, reviews: reviews.count ?? 0 };
-}
