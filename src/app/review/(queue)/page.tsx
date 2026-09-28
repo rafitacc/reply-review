@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { EmptyState } from "@/components/review/empty-state";
 import { QueueFilters } from "@/components/review/queue-filters";
 import { QueueList } from "@/components/review/queue-list";
-import { countToReview, listQueue } from "@/lib/data/replies";
+import { countToReview, listQueue, QUEUE_LIMIT } from "@/lib/data/replies";
 import { getCurrentUser, getLedBrands } from "@/lib/data/session";
 import { filtersToQuery, parseFilters, type QueueFilters as Filters } from "@/lib/reviews/filters";
 
@@ -32,7 +32,7 @@ export default async function ReviewQueuePage({ searchParams }: PageProps<"/revi
     .filter((b) => filters.brand === null || b.brandSlug === filters.brand)
     .map((b) => b.brandId);
 
-  const [items, toReview] = await Promise.all([
+  const [{ items, capped }, toReview] = await Promise.all([
     listQueue({ userId: user.id, brandIds, status: filters.status }),
     countToReview(user.id, brandIds),
   ]);
@@ -46,6 +46,12 @@ export default async function ReviewQueuePage({ searchParams }: PageProps<"/revi
         <p className="text-base-content/70">
           <span className="font-mono text-base-content">{toReview}</span> to review
           {brandName ? ` for ${brandName}` : ""}
+          {capped && (
+            <>
+              <span aria-hidden> · </span>
+              Showing the latest <span className="font-mono">{QUEUE_LIMIT}</span>
+            </>
+          )}
         </p>
       </header>
 
@@ -56,6 +62,7 @@ export default async function ReviewQueuePage({ searchParams }: PageProps<"/revi
       ) : (
         <QueueList items={items} query={filtersToQuery(filters)} showBrand={filters.brand === null && ledBrands.length > 1} />
       )}
+
     </Page>
   );
 }

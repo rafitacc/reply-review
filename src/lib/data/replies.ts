@@ -6,9 +6,10 @@ import { getCurrentUser, getLedBrands, type CurrentUser, type Membership } from 
 import { isUuid, type Status } from "@/lib/reviews/filters";
 import { createClient } from "@/lib/supabase/server";
 
-// How far back the queue looks. Reviews happen within days of a reply being
-// sent; anything older is out of the lead's working window.
-const QUEUE_LIMIT = 100;
+// Maximum number of rows the queue lists: the newest ones. It is a row cap,
+// not a time window. The "to review" counter is not capped, so when there are
+// more rows than this the page says it is only showing the latest ones.
+export const QUEUE_LIMIT = 100;
 
 // A reply only knows its brand through the membership it was sent under
 // (composite FK replies_brand_member_fkey), so brand and specialist are both
@@ -42,10 +43,16 @@ type QueueQuery = {
   status: Status;
 };
 
+export type QueuePage = {
+  items: QueueItem[];
+  // True when more rows matched than QUEUE_LIMIT and only the newest are listed.
+  capped: boolean;
+};
+
 // Recent replies for the lead's queue, newest first. "Reviewed" means reviewed
 // by this lead: each lead keeps their own queue.
-export async function listQueue({ userId, brandIds, status }: QueueQuery): Promise<QueueItem[]> {
-  if (brandIds.length === 0) return [];
+export async function listQueue({ userId, brandIds, status }: QueueQuery): Promise<QueuePage> {
+  if (brandIds.length === 0) return { items: [], capped: false };
 
   const supabase = await createClient();
   let query = supabase
@@ -54,7 +61,8 @@ export async function listQueue({ userId, brandIds, status }: QueueQuery): Promi
     .in("brand_id", brandIds)
     .eq("reviews.reviewer_id", userId)
     .order("sent_at", { ascending: false })
-    .limit(QUEUE_LIMIT);
+    // One extra row tells whether the cap was hit, without a second count.
+    .limit(QUEUE_LIMIT + 1);
 
   if (status === "to_review") query = query.is("reviews", null);
   if (status === "reviewed") query = query.not("reviews", "is", null);
@@ -62,7 +70,7 @@ export async function listQueue({ userId, brandIds, status }: QueueQuery): Promi
   const { data, error } = await query;
   if (error) throw new Error(`Could not load the review queue: ${error.message}`);
 
-  return data.map((row) => ({
+  const items = data.slice(0, QUEUE_LIMIT).map((row) => ({
     id: row.id,
     subject: row.subject,
     excerpt: excerpt(row.reply_body),
@@ -71,6 +79,7 @@ export async function listQueue({ userId, brandIds, status }: QueueQuery): Promi
     specialistName: row.member.specialist.full_name,
     myScore: row.reviews[0]?.score ?? null,
   }));
+  return { items, capped: data.length > QUEUE_LIMIT };
 }
 
 // How many replies in these brands this lead has not reviewed yet.
