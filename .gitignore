@@ -44,3 +44,8 @@ next-env.d.ts
 # supabase local state
 supabase/.branches
 supabase/.temp
+
+# local tooling output (Supabase Studio snippets, Playwright MCP logs, editor launch config)
+supabase/snippets/
+.playwright-mcp/
+.claude/launch.json
