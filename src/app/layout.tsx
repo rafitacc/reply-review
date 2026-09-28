@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
-import { UserSwitcher } from "@/components/auth/user-switcher";
+import { TopBar } from "@/components/shell/top-bar";
 import { getCurrentUser } from "@/lib/data/session";
 import { DEMO_USERS, isDemoMode } from "@/lib/demo-users";
 import "./globals.css";
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const user = isDemoMode() ? await getCurrentUser() : null;
+  const user = await getCurrentUser();
 
   return (
     <html
@@ -30,8 +30,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        {isDemoMode() && <UserSwitcher users={DEMO_USERS} currentEmail={user?.email ?? null} />}
-        {children}
+        <TopBar user={user} demoUsers={isDemoMode() ? DEMO_USERS : null} />
+        <div className="flex-1">{children}</div>
       </body>
     </html>
   );

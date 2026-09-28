@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import type { Database } from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,11 +16,13 @@ export type CurrentUser = {
 export type Membership = {
   brandId: string;
   brandName: string;
+  brandSlug: string;
   role: Role;
 };
 
 // The signed-in user, verified from the session JWT. Null when signed out.
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+// Cached per request: the layout, a page and its segment layout all ask.
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
@@ -35,16 +39,16 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     email: typeof claims.email === "string" ? claims.email : null,
     fullName: profile?.full_name ?? null,
   };
-}
+});
 
 // The current user's own memberships. The user_id filter selects "mine" out
 // of what RLS returns (a lead also sees teammates' rows); it is not the
 // access control.
-export async function getMyMemberships(userId: string): Promise<Membership[]> {
+export const getMyMemberships = cache(async (userId: string): Promise<Membership[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("brand_members")
-    .select("brand_id, role, brands (name)")
+    .select("brand_id, role, brands (name, slug)")
     .eq("user_id", userId)
     .order("brand_id");
   if (error) throw new Error(`Could not load brand memberships: ${error.message}`);
@@ -52,19 +56,16 @@ export async function getMyMemberships(userId: string): Promise<Membership[]> {
   return data.map((row) => ({
     brandId: row.brand_id,
     brandName: row.brands.name,
+    brandSlug: row.brands.slug,
     role: row.role,
   }));
-}
+});
 
-// Everything RLS lets the current user read, counted without filters.
-export async function getVisibleCounts(): Promise<{ replies: number; reviews: number }> {
-  const supabase = await createClient();
-  const [replies, reviews] = await Promise.all([
-    supabase.from("replies").select("*", { count: "exact", head: true }),
-    supabase.from("reviews").select("*", { count: "exact", head: true }),
-  ]);
-  if (replies.error) throw new Error(`Could not count replies: ${replies.error.message}`);
-  if (reviews.error) throw new Error(`Could not count reviews: ${reviews.error.message}`);
-
-  return { replies: replies.count ?? 0, reviews: reviews.count ?? 0 };
+// Brands the current user leads, by name. Leading is per brand, so someone can
+// lead one brand and be a specialist on another.
+export async function getLedBrands(userId: string): Promise<Membership[]> {
+  const memberships = await getMyMemberships(userId);
+  return memberships
+    .filter((m) => m.role === "lead")
+    .sort((a, b) => a.brandName.localeCompare(b.brandName));
 }

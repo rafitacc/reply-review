@@ -1,26 +1,124 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Design system (CLAUDE.md section 7).
+ *
+ * Two custom daisyUI themes. Zinc neutrals carry the interface, one deep indigo
+ * accent (primary) marks actions and focus, and the semantic colours exist only
+ * for score badges: error for 1–2, warning for 3, success for 4–5.
+ * Components use theme tokens (bg-base-100, text-base-content, border-base-300,
+ * text-primary...), never raw colour values.
+ */
+@plugin "daisyui" {
+  themes: false;
+}
+
+@plugin "daisyui/theme" {
+  name: "reply-light";
+  default: true;
+  color-scheme: light;
+
+  --color-base-100: oklch(100% 0 0);                /* white */
+  --color-base-200: oklch(98.5% 0 0);               /* zinc-50 */
+  --color-base-300: oklch(92% 0.004 286.32);        /* zinc-200, borders */
+  --color-base-content: oklch(21% 0.006 285.885);   /* zinc-900 */
+  --color-primary: oklch(45.7% 0.24 277.023);       /* indigo-700 */
+  --color-primary-content: oklch(98.5% 0 0);
+  --color-secondary: oklch(96.7% 0.001 286.375);    /* zinc-100, quiet buttons */
+  --color-secondary-content: oklch(21% 0.006 285.885);
+  --color-accent: oklch(45.7% 0.24 277.023);
+  --color-accent-content: oklch(98.5% 0 0);
+  --color-neutral: oklch(27.4% 0.006 286.033);      /* zinc-800 */
+  --color-neutral-content: oklch(98.5% 0 0);
+  --color-info: oklch(45.7% 0.24 277.023);
+  --color-info-content: oklch(98.5% 0 0);
+  --color-success: oklch(62.7% 0.194 149.214);      /* green-600 */
+  --color-success-content: oklch(98.5% 0 0);
+  --color-warning: oklch(66.6% 0.179 58.318);       /* amber-600 */
+  --color-warning-content: oklch(98.5% 0 0);
+  --color-error: oklch(57.7% 0.245 27.325);         /* red-600 */
+  --color-error-content: oklch(98.5% 0 0);
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+  name: "reply-dark";
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-base-100: oklch(14.1% 0.005 285.823);     /* zinc-950 */
+  --color-base-200: oklch(17.5% 0.005 285.823);     /* between 950 and 900 */
+  --color-base-300: oklch(27.4% 0.006 286.033);     /* zinc-800, borders */
+  --color-base-content: oklch(92% 0.004 286.32);    /* zinc-200 */
+  --color-primary: oklch(67.3% 0.182 276.935);      /* indigo-400 */
+  --color-primary-content: oklch(14.1% 0.005 285.823);
+  --color-secondary: oklch(21% 0.006 285.885);      /* zinc-900 */
+  --color-secondary-content: oklch(92% 0.004 286.32);
+  --color-accent: oklch(67.3% 0.182 276.935);
+  --color-accent-content: oklch(14.1% 0.005 285.823);
+  --color-neutral: oklch(87.1% 0.006 286.286);      /* zinc-300 */
+  --color-neutral-content: oklch(14.1% 0.005 285.823);
+  --color-info: oklch(67.3% 0.182 276.935);
+  --color-info-content: oklch(14.1% 0.005 285.823);
+  --color-success: oklch(72.3% 0.219 149.579);      /* green-500 */
+  --color-success-content: oklch(14.1% 0.005 285.823);
+  --color-warning: oklch(76.9% 0.188 70.08);        /* amber-500 */
+  --color-warning-content: oklch(14.1% 0.005 285.823);
+  --color-error: oklch(63.7% 0.237 25.331);         /* red-500 */
+  --color-error-content: oklch(14.1% 0.005 285.823);
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/*
+ * Fixed type scale: 12 / 14 / 16 / 20 / 28. Every other Tailwind text size is
+ * removed, so an off-scale size does not compile into anything.
+ */
+@theme {
+  --text-*: initial;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.75rem;
+  --text-2xl--line-height: 2.25rem;
+}
+
+@layer base {
+  body {
+    @apply bg-base-100 text-base-content font-sans text-sm;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Reading text: a reply or a customer message. */
+@utility prose-reply {
+  font-size: var(--text-base);
+  line-height: 1.6;
+  max-width: 70ch;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
