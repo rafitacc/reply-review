@@ -69,3 +69,12 @@ export async function getLedBrands(userId: string): Promise<Membership[]> {
     .filter((m) => m.role === "lead")
     .sort((a, b) => a.brandName.localeCompare(b.brandName));
 }
+
+// Brands where the current user writes replies. Used for the "My feedback"
+// brand filter; a lead of one brand can be a specialist on another.
+export async function getSpecialistBrands(userId: string): Promise<Membership[]> {
+  const memberships = await getMyMemberships(userId);
+  return memberships
+    .filter((m) => m.role === "specialist")
+    .sort((a, b) => a.brandName.localeCompare(b.brandName));
+}
