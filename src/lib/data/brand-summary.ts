@@ -1,5 +1,8 @@
 import "server-only";
 
+import { cache } from "react";
+
+import { getCurrentUser, getLedBrands, type Membership } from "@/lib/data/session";
 import { average, rankIssues, type IssueCount } from "@/lib/summary/aggregate";
 import { inRange, periodRanges, weekRanges, type Period } from "@/lib/summary/period";
 import { createClient } from "@/lib/supabase/server";
@@ -165,3 +168,12 @@ export async function getBrandSummary(brandId: string, period: Period): Promise<
     capped: data.length === SUMMARY_ROW_LIMIT,
   };
 }
+
+// The brand with this slug if the signed-in user leads it, else null. Same
+// answer for "does not exist" and "not yours", so the 404 confirms nothing.
+export const getLedBrand = cache(async (slug: string): Promise<Membership | null> => {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  const ledBrands = await getLedBrands(user.id);
+  return ledBrands.find((b) => b.brandSlug === slug) ?? null;
+});

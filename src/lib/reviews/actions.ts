@@ -142,7 +142,10 @@ export async function saveReview(input: unknown): Promise<SaveReviewResult> {
     return { ok: false, error: SAVE_FAILED };
   }
 
+  // The queue, the brand summary and the specialist's feedback all show it.
   revalidatePath("/review", "layout");
+  revalidatePath("/brands", "layout");
+  revalidatePath("/feedback", "layout");
   // redirect() throws, so it stays outside the try/catch above.
   if (nextHref) redirect(nextHref);
   return { ok: true, savedAt: new Date().toISOString() };
