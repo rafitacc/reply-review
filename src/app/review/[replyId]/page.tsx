@@ -1,32 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { BrandBadge } from "@/components/review/brand-badge";
 import { ReplyThread } from "@/components/review/reply-thread";
 import { ReviewForm } from "@/components/review/review-form";
 import { VoiceGuidelines } from "@/components/review/voice-guidelines";
-import { getReply } from "@/lib/data/replies";
+import { getReviewableReply } from "@/lib/data/replies";
 import { getMyReview, listIssueTypes } from "@/lib/data/reviews";
-import { getCurrentUser, getLedBrands } from "@/lib/data/session";
 import { dateTime, minutesLabel } from "@/lib/format";
-import { filtersToQuery, isUuid, parseFilters } from "@/lib/reviews/filters";
+import { filtersToQuery, parseFilters } from "@/lib/reviews/filters";
 
 export const metadata: Metadata = { title: "Review a reply · reply-review" };
 
 export default async function ReviewReplyPage({ params, searchParams }: PageProps<"/review/[replyId]">) {
   const { replyId } = await params;
-  // A malformed id would be a database error; it is simply a reply that is
-  // not there.
-  if (!isUuid(replyId)) notFound();
-
-  const user = await getCurrentUser();
-  if (!user) redirect("/");
-
-  const [reply, ledBrands] = await Promise.all([getReply(replyId), getLedBrands(user.id)]);
-  // Missing, hidden by RLS, or visible only because it is the user's own reply
-  // on a brand they do not lead: all look the same from outside.
-  if (!reply || !ledBrands.some((b) => b.brandId === reply.brand.id)) notFound();
+  // Same cached check as the layout; repeated here to narrow the types.
+  const reviewable = await getReviewableReply(replyId);
+  if (!reviewable) notFound();
+  const { user, reply, ledBrands } = reviewable;
 
   const [myReview, issueTypes] = await Promise.all([getMyReview(reply.id, user.id), listIssueTypes()]);
   const filters = parseFilters(await searchParams, ledBrands.map((b) => b.brandSlug));

@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import type { Database } from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -19,7 +21,8 @@ export type Membership = {
 };
 
 // The signed-in user, verified from the session JWT. Null when signed out.
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+// Cached per request: the layout, a page and its segment layout all ask.
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
@@ -36,12 +39,12 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     email: typeof claims.email === "string" ? claims.email : null,
     fullName: profile?.full_name ?? null,
   };
-}
+});
 
 // The current user's own memberships. The user_id filter selects "mine" out
 // of what RLS returns (a lead also sees teammates' rows); it is not the
 // access control.
-export async function getMyMemberships(userId: string): Promise<Membership[]> {
+export const getMyMemberships = cache(async (userId: string): Promise<Membership[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("brand_members")
@@ -56,7 +59,7 @@ export async function getMyMemberships(userId: string): Promise<Membership[]> {
     brandSlug: row.brands.slug,
     role: row.role,
   }));
-}
+});
 
 // Brands the current user leads, by name. Leading is per brand, so someone can
 // lead one brand and be a specialist on another.

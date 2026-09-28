@@ -64,10 +64,10 @@ export function UserSwitcher({ users, current }: Props) {
                 <li key={user.email}>
                   <button
                     type="button"
-                    disabled={pending || active}
+                    disabled={pending}
                     aria-current={active || undefined}
-                    className="flex items-center gap-3 py-2"
-                    onClick={() => run(() => switchUser(user.email))}
+                    className={`flex items-center gap-3 py-2 ${active ? "bg-base-200" : ""}`}
+                    onClick={() => (active ? detailsRef.current?.removeAttribute("open") : run(() => switchUser(user.email)))}
                   >
                     <Avatar name={user.name} />
                     <span className="flex flex-col items-start">

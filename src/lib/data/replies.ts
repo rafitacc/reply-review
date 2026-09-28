@@ -1,6 +1,9 @@
 import "server-only";
 
-import type { Status } from "@/lib/reviews/filters";
+import { cache } from "react";
+
+import { getCurrentUser, getLedBrands, type CurrentUser, type Membership } from "@/lib/data/session";
+import { isUuid, type Status } from "@/lib/reviews/filters";
 import { createClient } from "@/lib/supabase/server";
 
 // How far back the queue looks. Reviews happen within days of a reply being
@@ -125,7 +128,7 @@ export type ReplyForReview = {
 // One reply with everything the review page shows. Returns null both when the
 // reply does not exist and when RLS hides it, so callers cannot tell the two
 // apart (and neither can the person using the app).
-export async function getReply(replyId: string): Promise<ReplyForReview | null> {
+export const getReply = cache(async (replyId: string): Promise<ReplyForReview | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("replies")
@@ -152,9 +155,29 @@ export async function getReply(replyId: string): Promise<ReplyForReview | null> 
     brand: { id: brand.id, name: brand.name, slug: brand.slug, voiceGuidelines: brand.voice_guidelines },
     specialistName: data.member.specialist.full_name,
   };
-}
+});
 
 function excerpt(body: string): string {
   const oneLine = body.replace(/\s+/g, " ").trim();
   return oneLine.length > 160 ? `${oneLine.slice(0, 160).trimEnd()}…` : oneLine;
 }
+
+export type Reviewable = {
+  user: CurrentUser;
+  reply: ReplyForReview;
+  ledBrands: Membership[];
+};
+
+// A reply the signed-in user may review: it exists, RLS lets them read it,
+// and they lead its brand. Null for every other case (signed out, malformed
+// id, missing, hidden, or their own reply on a brand they do not lead), so the
+// caller answers all of them the same way.
+export const getReviewableReply = cache(async (replyId: string): Promise<Reviewable | null> => {
+  if (!isUuid(replyId)) return null;
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  const [reply, ledBrands] = await Promise.all([getReply(replyId), getLedBrands(user.id)]);
+  if (!reply || !ledBrands.some((b) => b.brandId === reply.brand.id)) return null;
+  return { user, reply, ledBrands };
+});
