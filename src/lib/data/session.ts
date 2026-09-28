@@ -14,6 +14,7 @@ export type CurrentUser = {
 export type Membership = {
   brandId: string;
   brandName: string;
+  brandSlug: string;
   role: Role;
 };
 
@@ -44,7 +45,7 @@ export async function getMyMemberships(userId: string): Promise<Membership[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("brand_members")
-    .select("brand_id, role, brands (name)")
+    .select("brand_id, role, brands (name, slug)")
     .eq("user_id", userId)
     .order("brand_id");
   if (error) throw new Error(`Could not load brand memberships: ${error.message}`);
@@ -52,8 +53,18 @@ export async function getMyMemberships(userId: string): Promise<Membership[]> {
   return data.map((row) => ({
     brandId: row.brand_id,
     brandName: row.brands.name,
+    brandSlug: row.brands.slug,
     role: row.role,
   }));
+}
+
+// Brands the current user leads, by name. Leading is per brand, so someone can
+// lead one brand and be a specialist on another.
+export async function getLedBrands(userId: string): Promise<Membership[]> {
+  const memberships = await getMyMemberships(userId);
+  return memberships
+    .filter((m) => m.role === "lead")
+    .sort((a, b) => a.brandName.localeCompare(b.brandName));
 }
 
 // Everything RLS lets the current user read, counted without filters.
