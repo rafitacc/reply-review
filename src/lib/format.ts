@@ -46,3 +46,35 @@ export function minutesLabel(minutes: number): string {
   const rest = minutes % 60;
   return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
 }
+
+// "4" for a single score, "3.7" for an average.
+export function scoreLabel(score: number): string {
+  return Number.isInteger(score) ? String(score) : score.toFixed(1);
+}
+
+// "22 Sep" in UTC. Summary periods are computed in UTC, so their edges are
+// labelled in UTC too; otherwise a bucket could look a day off.
+function utcDay(date: Date): string {
+  return `${date.getUTCDate()} ${date.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}`;
+}
+
+// "22 Sep – 28 Sep" for [from, to). The end is exclusive, so the label shows
+// the last day inside the range.
+export function utcRangeLabel(fromIso: string, toIso: string): string {
+  const lastDay = new Date(Date.parse(toIso) - 1);
+  const first = utcDay(new Date(fromIso));
+  const last = utcDay(lastDay);
+  return first === last ? first : `${first} – ${last}`;
+}
+
+// "3.0", "3.7": averages always carry one decimal so they don't read as a score.
+export function averageLabel(average: number): string {
+  return average.toFixed(1);
+}
+
+// "+0.4", "−0.3", "±0.0" for a change in average score.
+export function deltaLabel(delta: number): string {
+  const rounded = Math.round(delta * 10) / 10;
+  if (rounded === 0) return "±0.0";
+  return `${rounded > 0 ? "+" : "−"}${Math.abs(rounded).toFixed(1)}`;
+}

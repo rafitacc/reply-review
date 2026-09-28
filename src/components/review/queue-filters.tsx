@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import { Segmented, SegmentedOption as Option } from "@/components/ui/segmented";
 import type { Membership } from "@/lib/data/session";
 import { filtersToQuery, type QueueFilters, type Status } from "@/lib/reviews/filters";
 
@@ -14,8 +13,6 @@ type Props = {
   brands: readonly Membership[];
 };
 
-// Plain links, so filters are in the URL, work without JavaScript and
-// survive a refresh.
 export function QueueFilters({ filters, brands }: Props) {
   return (
     <nav aria-label="Filters" className="flex flex-wrap items-center justify-between gap-3">
@@ -48,29 +45,5 @@ export function QueueFilters({ filters, brands }: Props) {
         ))}
       </Segmented>
     </nav>
-  );
-}
-
-function Segmented({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <ul aria-label={label} className="flex items-center gap-0.5 rounded-field border border-base-300 p-0.5">
-      {children}
-    </ul>
-  );
-}
-
-function Option({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
-  return (
-    <li>
-      <Link
-        href={href}
-        aria-current={active ? "page" : undefined}
-        className={`block rounded-[calc(var(--radius-field)-2px)] px-3 py-1 transition-colors focus-visible:outline-2 focus-visible:outline-primary ${
-          active ? "bg-base-200 font-medium text-base-content" : "text-base-content/60 hover:text-base-content"
-        }`}
-      >
-        {children}
-      </Link>
-    </li>
   );
 }

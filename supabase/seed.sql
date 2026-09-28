@@ -116,7 +116,8 @@ insert into public.brand_members (brand_id, user_id, role) values
   ('b0000000-0000-4000-a000-000000000003', '00000000-0000-4000-a000-000000000004', 'specialist');
 
 -- ---------------------------------------------------------------------------
--- Replies (6 per brand, last 14 days, 6 of them sent yesterday)
+-- Replies (6 per brand, last 14 days, 6 of them sent yesterday; older
+-- history for Voltra and Packwell is at the end of this file)
 -- ---------------------------------------------------------------------------
 
 -- Voltra ---------------------------------------------------------------------
@@ -562,5 +563,172 @@ from (values
   ('d0000000-0000-4000-a000-000000000013', 'would_not_resolve'),
   ('d0000000-0000-4000-a000-000000000015', 'incorrect_information'),
   ('d0000000-0000-4000-a000-000000000015', 'wrong_tone')
+) as v (review_id, issue_slug)
+join public.issue_types it on it.slug = v.issue_slug;
+
+-- ---------------------------------------------------------------------------
+-- Older history (15 to 30 days ago) for Voltra and Packwell, all reviewed.
+-- Gives the brand summary a previous period to compare against and a few
+-- weeks of trend. Lumen has no history on purpose, so its summary shows the
+-- "No previous data" state.
+-- ---------------------------------------------------------------------------
+insert into public.replies (id, brand_id, specialist_id, subject, customer_message, reply_body, sent_at, first_response_minutes) values
+(
+  'c0000000-0000-4000-a000-000000000019',
+  'b0000000-0000-4000-a000-000000000001', '00000000-0000-4000-a000-000000000003',
+  'Brakes squeak since last week',
+  $t$Hello, my S2 Pro started squeaking every time I brake, front wheel. It still stops fine. Is this dangerous? Should I send it back?
+
+Ana Beltrán$t$,
+  $t$Hi Ana,
+
+Sorry about the noise. We can arrange a repair: I've created ticket R-20931 and our courier will collect the scooter within 3 working days. The repair itself usually takes a week.
+
+Dani
+Voltra Support$t$,
+  pg_temp.seed_at(16, '10:40'), 50
+),
+(
+  'c0000000-0000-4000-a000-000000000020',
+  'b0000000-0000-4000-a000-000000000001', '00000000-0000-4000-a000-000000000005',
+  'Range much lower than advertised',
+  $t$The website says 45 km for the S2. I get maybe 25 before it dies. I weigh 80 kg and ride mostly flat. Is my battery faulty?
+
+Pau Riera$t$,
+  $t$Hi Pau,
+
+Thanks for writing in. The 45 km figure is measured in ideal conditions, so real-world range is often lower. Please check the battery health under Settings > Battery in the app and let me know the percentage, along with which riding mode you use most (Eco, Drive or Sport). Also, are your tyres at 50 psi? And has the firmware been updated recently?
+
+Tomás
+Voltra Support$t$,
+  pg_temp.seed_at(19, '15:05'), 70
+),
+(
+  'c0000000-0000-4000-a000-000000000021',
+  'b0000000-0000-4000-a000-000000000001', '00000000-0000-4000-a000-000000000005',
+  'Throttle stops working after a few minutes',
+  $t$My City accelerates normally for about five minutes, then the throttle stops responding. If I turn it off and on it works again for a while. Very annoying on my commute.
+
+Laura Méndez$t$,
+  $t$Dear customer,
+
+We apologise for the inconvenience. Please send the scooter back using the return form on our website and we will inspect it.
+
+Kind regards,
+Voltra Support$t$,
+  pg_temp.seed_at(23, '09:25'), 180
+),
+(
+  'c0000000-0000-4000-a000-000000000022',
+  'b0000000-0000-4000-a000-000000000001', '00000000-0000-4000-a000-000000000003',
+  'App says firmware update failed',
+  $t$Tried updating the firmware on my S2 through the app last night. It got to 60% and then said "Update failed". Now I'm scared to ride it. Did I break it?
+
+Marc Soto$t$,
+  $t$Hi Marc,
+
+You didn't break anything. A failed update leaves the previous firmware in place, so the scooter is safe to ride.
+
+The usual cause is the phone going to sleep mid-update. Could you try once more with the scooter switched on, the phone next to it and the screen kept awake until it reaches 100%? If it stops at 60% again, tell me and I'll send you the manual update steps.
+
+Dani
+Voltra Support$t$,
+  pg_temp.seed_at(27, '18:10'), 40
+),
+(
+  'c0000000-0000-4000-a000-000000000023',
+  'b0000000-0000-4000-a000-000000000002', '00000000-0000-4000-a000-000000000004',
+  'Invoice 5521 wrong VAT',
+  $t$Invoice 5521 has 21% VAT on the pallet wrap. We are a registered EU business in Portugal, VAT number PT509876543, should be reverse charge. Please reissue.
+
+Rui Carvalho, LusoPack Logística$t$,
+  $t$Hi Rui,
+
+Reissued as invoice 5521-R with reverse charge, VAT number PT509876543. Attached. The original 5521 is cancelled.
+
+Lucía
+Packwell$t$,
+  pg_temp.seed_at(17, '11:15'), 35
+),
+(
+  'c0000000-0000-4000-a000-000000000024',
+  'b0000000-0000-4000-a000-000000000002', '00000000-0000-4000-a000-000000000003',
+  'Pallet count on delivery 88112',
+  $t$Delivery 88112 arrived this morning with 7 pallets of SW-300. The order says 8. Is one coming separately or was it missed?
+
+Iker Olaizola, Bidasoa Distribución$t$,
+  $t$Hi Iker,
+
+Thanks for letting us know and sorry for the trouble! I've passed this on to our logistics team, who will look into what happened with the missing pallet. We'll get back to you as soon as we have more information.
+
+Dani
+Packwell$t$,
+  pg_temp.seed_at(21, '12:40'), 95
+),
+(
+  'c0000000-0000-4000-a000-000000000025',
+  'b0000000-0000-4000-a000-000000000002', '00000000-0000-4000-a000-000000000004',
+  'Sample of 23 micron stretch film',
+  $t$Could you send a sample roll of your 23 micron machine stretch film before we place a bigger order? Delivery to our Zaragoza warehouse.
+
+Elena Gil, Ebro Fulfilment$t$,
+  $t$Hi Elena,
+
+One sample roll of SF-23M (23 micron, machine grade) ships today by courier to your Zaragoza warehouse, arriving Wednesday. No charge.
+
+Lucía
+Packwell$t$,
+  pg_temp.seed_at(26, '09:50'), 20
+);
+
+insert into public.reviews (id, reply_id, reviewer_id, score, comment, created_at, updated_at)
+select r.id, r.reply_id, r.reviewer_id, r.score, r.comment,
+       rep.sent_at + r.delay, rep.sent_at + r.delay
+from (values
+  -- Voltra (Marta)
+  ('d0000000-0000-4000-a000-000000000019'::uuid, 'c0000000-0000-4000-a000-000000000019'::uuid,
+   '00000000-0000-4000-a000-000000000001'::uuid, 2::smallint,
+   $t$Squeaky front brake on an S2 Pro is almost always the disc needing a clean or the caliper needing a small adjustment, both five-minute fixes we have a video for. We just booked a courier and a week without her scooter for that. Diagnose first.$t$,
+   interval '4 hours'),
+  ('d0000000-0000-4000-a000-000000000020', 'c0000000-0000-4000-a000-000000000020',
+   '00000000-0000-4000-a000-000000000001', 3,
+   $t$Good instinct to look at battery health and riding mode, but four questions in one email. Ask for the battery health first, that answers most range complaints.$t$,
+   interval '1 day'),
+  ('d0000000-0000-4000-a000-000000000021', 'c0000000-0000-4000-a000-000000000021',
+   '00000000-0000-4000-a000-000000000001', 1,
+   $t$Throttle cutting out after a few minutes on a City is the brake lever sensor sticking, it's in our troubleshooting guide. No name, no signature, a return form and three hours to send it. This is the reply Voltra hired us not to send.$t$,
+   interval '5 hours'),
+  ('d0000000-0000-4000-a000-000000000022', 'c0000000-0000-4000-a000-000000000022',
+   '00000000-0000-4000-a000-000000000001', 4,
+   $t$Calm, reassures him first, one likely cause and one thing to try. Would be a 5 if you'd told him which firmware version he should end up on so he can check himself.$t$,
+   interval '2 hours'),
+
+  -- Packwell (Marta)
+  ('d0000000-0000-4000-a000-000000000023', 'c0000000-0000-4000-a000-000000000023',
+   '00000000-0000-4000-a000-000000000001', 5,
+   $t$Exactly the Packwell format. Invoice number, what changed, attached. Done in 35 minutes.$t$,
+   interval '3 hours'),
+  ('d0000000-0000-4000-a000-000000000024', 'c0000000-0000-4000-a000-000000000024',
+   '00000000-0000-4000-a000-000000000001', 2,
+   $t$No date, no answer to his actual question (separate shipment or missed?), and an exclamation mark. Check the dispatch note before replying: it would have told you whether the eighth pallet left the warehouse.$t$,
+   interval '6 hours'),
+  ('d0000000-0000-4000-a000-000000000025', 'c0000000-0000-4000-a000-000000000025',
+   '00000000-0000-4000-a000-000000000001', 4,
+   $t$Right SKU, delivery day, cost. Add the courier tracking number when you have it, she'll want to tell the warehouse.$t$,
+   interval '1 day')
+) as r (id, reply_id, reviewer_id, score, comment, delay)
+join public.replies rep on rep.id = r.reply_id;
+
+insert into public.review_issues (review_id, issue_type_id)
+select v.review_id::uuid, it.id
+from (values
+  ('d0000000-0000-4000-a000-000000000019', 'would_not_resolve'),
+  ('d0000000-0000-4000-a000-000000000020', 'wrong_tone'),
+  ('d0000000-0000-4000-a000-000000000021', 'would_not_resolve'),
+  ('d0000000-0000-4000-a000-000000000021', 'wrong_tone'),
+  ('d0000000-0000-4000-a000-000000000021', 'too_slow'),
+  ('d0000000-0000-4000-a000-000000000024', 'would_not_resolve'),
+  ('d0000000-0000-4000-a000-000000000024', 'skipped_order_history'),
+  ('d0000000-0000-4000-a000-000000000024', 'too_slow')
 ) as v (review_id, issue_slug)
 join public.issue_types it on it.slug = v.issue_slug;

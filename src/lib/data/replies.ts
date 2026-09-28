@@ -131,6 +131,7 @@ export type ReplyForReview = {
   sentAt: string;
   firstResponseMinutes: number | null;
   brand: { id: string; name: string; slug: string; voiceGuidelines: string };
+  specialistId: string;
   specialistName: string;
 };
 
@@ -142,7 +143,7 @@ export const getReply = cache(async (replyId: string): Promise<ReplyForReview | 
   const { data, error } = await supabase
     .from("replies")
     .select(
-      `id, subject, customer_message, reply_body, sent_at, first_response_minutes,
+      `id, subject, customer_message, reply_body, sent_at, first_response_minutes, specialist_id,
        member:brand_members!replies_brand_member_fkey (
          brand:brands ( id, name, slug, voice_guidelines ),
          specialist:profiles ( full_name )
@@ -162,6 +163,7 @@ export const getReply = cache(async (replyId: string): Promise<ReplyForReview | 
     sentAt: data.sent_at,
     firstResponseMinutes: data.first_response_minutes,
     brand: { id: brand.id, name: brand.name, slug: brand.slug, voiceGuidelines: brand.voice_guidelines },
+    specialistId: data.specialist_id,
     specialistName: data.member.specialist.full_name,
   };
 });
